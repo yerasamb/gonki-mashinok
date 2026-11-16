@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Гонки машинок</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;700&display=swap">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: one column like a toy table — garage shelf on top, the Grand Prix circuit below; chunky buttons with hard shadows. Single committed look (sunny tabletop). */
+:root {
+  color-scheme: light;
+  --table: #ffd84a;      /* yellow tabletop */
+  --table-deep: #f2bf1d;
+  --ink: #1d1b33;        /* dark blue-black */
+  --ink-soft: #55516e;
+  --paper: #fffdf5;
+  --asphalt: #2c2f45;
+  --red: #e5352b;        /* race red */
+  --red-deep: #a81d15;
+  --blue: #2f6fe4;
+  --line: #e9e2c6;
+  --display: "Russo One", "Arial Black", Impact, sans-serif;
+  --body: "Rubik", "Segoe UI", Roboto, Arial, sans-serif;
+}
+html, body { background: var(--table); }
+body { color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.45; }
+.wrap {
+  max-width: 980px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px;
+}
+.checker {
+  height: 18px; border-radius: 4px;
+  background: conic-gradient(var(--ink) 25%, var(--paper) 0 50%, var(--ink) 0 75%, var(--paper) 0) 0 0 / 18px 18px;
+}
+header { display: flex; flex-direction: column; gap: 10px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(34px, 9vw, 60px); line-height: 1; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+h1 span { color: var(--red); }
+.lead { margin: 0; max-width: 56ch; font-size: 18px; }
+h2 { font-family: var(--display); font-weight: 400; font-size: 24px; margin: 0; }
+section { display: flex; flex-direction: column; gap: 12px; }
+.head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.count { font-weight: 500; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.hint { margin: 0; color: var(--ink-soft); font-size: 15px; font-weight: 400; max-width: 70ch; }
+.note { margin: 0; font-weight: 500; }
+
+/* buttons */
+.btn {
+  font: 700 18px/1 var(--body); color: var(--paper); background: var(--red);
+  border: 3px solid var(--ink); border-radius: 14px; padding: 14px 20px;
+  box-shadow: 0 5px 0 var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  text-align: center; -webkit-tap-highlight-color: transparent; user-select: none; position: relative;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.btn.blue { background: var(--blue); }
+.btn.plain { background: var(--paper); color: var(--ink); }
+.btn.big { font-family: var(--display); font-weight: 400; font-size: 26px; padding: 16px 34px; letter-spacing: .03em; }
+.btn[disabled], .btn.off { opacity: .45; pointer-events: none; }
+.btn:focus-visible, .btn:focus-within, button:focus-visible, input:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.btn input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.actions { display: flex; flex-wrap: wrap; gap: 14px 12px; align-items: center; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.check input { width: 20px; height: 20px; accent-color: var(--red); }
+
+/* garage */
+.cars { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.car {
+  background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; padding: 10px;
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+.car-pic { height: 74px; display: flex; align-items: center; justify-content: center; border-bottom: 4px solid var(--asphalt); padding-bottom: 4px; }
+.car-pic img { max-height: 68px; max-width: 100%; object-fit: contain; }
+.car-name { font-weight: 700; overflow-wrap: anywhere; line-height: 1.2; }
+.tag { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); }
+.car button { align-self: flex-start; font: 500 14px var(--body); color: var(--red-deep); background: none; border: 0; padding: 4px 0; cursor: pointer; text-decoration: underline; }
+.empty { background: var(--paper); border: 3px dashed var(--ink-soft); border-radius: 16px; padding: 16px; margin: 0; color: var(--ink-soft); grid-column: 1 / -1; }
+
+/* characteristics */
+.stats { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; font-size: 13px; font-weight: 500; max-width: 340px; }
+.stats .bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; display: block; min-width: 30px; }
+.stats .bar i { display: block; height: 100%; background: var(--blue); border-radius: 4px; }
+.stats b { font-variant-numeric: tabular-nums; }
+#edStats .stats { font-size: 16px; gap: 6px 10px; } #edStats .bar { height: 12px; border-radius: 6px; }
+
+/* editor */
+#editor { background: var(--paper); border: 3px solid var(--ink); border-radius: 18px; padding: 16px; gap: 14px; }
+.stage {
+  border-radius: 12px; padding: 12px; display: flex; justify-content: center; align-items: center; min-height: 150px;
+  background: conic-gradient(#d9d4bd 25%, #efeada 0 50%, #d9d4bd 0 75%, #efeada 0) 0 0 / 22px 22px;
+}
+.stage canvas { max-width: 100%; max-height: 260px; }
+.field { display: flex; flex-direction: column; gap: 6px; font-weight: 500; }
+.field input[type=text] { font: 500 18px var(--body); color: var(--ink); background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 10px 12px; width: 100%; max-width: 340px; box-sizing: border-box; }
+.field input[type=range] { width: 100%; max-width: 340px; accent-color: var(--red); }
+.warn { margin: 0; color: var(--red-deep); font-weight: 500; }
+
+/* track */
+.track { border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; background: #3f9b4b; box-shadow: 0 6px 0 var(--table-deep); }
+#race { display: block; width: 100%; }
+#board { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 8px; min-height: 30px; }
+#board li { background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px 2px 4px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+#board li b { background: var(--ink); color: var(--paper); border-radius: 50%; width: 20px; height: 20px; display: grid; place-items: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+#podium, #friend { background: var(--paper); border: 3px solid var(--ink); border-radius: 18px; padding: 16px; gap: 10px; }
+#places { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+#places li { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.place { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--ink); display: grid; place-items: center; font-family: var(--display); background: var(--line); }
+#places li:nth-child(1) .place { background: #ffc928; }
+#places li:nth-child(2) .place { background: #cfd3dc; }
+#places li:nth-child(3) .place { background: #d9935a; }
+#places img { height: 34px; width: 70px; object-fit: contain; flex: none; }
+#places .nm { font-weight: 700; overflow-wrap: anywhere; min-width: 0; flex: 1; }
+#places .tm { color: var(--ink-soft); font-variant-numeric: tabular-nums; flex: none; }
+#friend ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="checker"></div>
+    <h1>Гонки <span>машинок</span></h1>
+    <p class="lead">Сфотографируй свою машинку сверху — и она выедет на трассу Гран-при. Кто победит, решают её характеристики.</p>
+  </header>
+
+  <section id="garage">
+    <div class="head-row"><h2>Гараж</h2><span class="count" id="count"></span></div>
+    <p class="note" id="modeNote">Открываю гараж…</p>
+    <div class="cars" id="cars"></div>
+    <label class="check" for="bots"><input type="checkbox" id="bots" checked> Добавить на трассу соперников-примеры</label>
+    <div class="actions" id="addrow">
+      <label class="btn" id="lblCam">Сфотографировать машинку
+        <input type="file" id="photoCam" accept="image/*" capture="environment">
+      </label>
+      <label class="btn plain" id="lblFile">Выбрать фото или файл машинки
+        <input type="file" id="photoFile" accept="image/*,.heic,.heif">
+      </label>
+    </div>
+    <p class="hint" id="garageHint">Положи машинку на белый лист или однотонный стол и снимай строго сверху — так она встанет на трассу как настоящая.</p>
+  </section>
+
+  <section id="editor" hidden>
+    <h2>Новая машинка</h2>
+    <div class="stage"><canvas id="preview" width="10" height="10"></canvas></div>
+    <p class="hint">Нос машинки должен смотреть вправо →. Если это не так, поверни её кнопкой ниже.</p>
+    <p class="warn" id="warn" hidden>Фон не получилось отделить. Подвигай ползунок или переснимай на однотонном фоне.</p>
+    <div class="field">Характеристики этой машинки
+      <div id="edStats"></div>
+      <span class="hint">Считаются по самому фото: по форме и цветам машинки. Скорость важна на прямых, разгон — на выходе из поворотов, повороты — в самих поворотах.</span>
+    </div>
+    <label class="field" for="tol" id="tolField">Сколько фона убрать
+      <input type="range" id="tol" min="0" max="100" value="40">
+    </label>
+    <label class="field" for="carName">Как зовут машинку?
+      <input type="text" id="carName" maxlength="16" placeholder="Например, Ракета" autocomplete="off">
+    </label>
+    <div class="actions">
+      <button class="btn plain" id="rot" type="button">Повернуть</button>
+      <button class="btn plain" id="flip" type="button">Отразить</button>
+      <button class="btn blue" id="save" type="button">В гараж!</button>
+      <button class="btn plain" id="export" type="button">Отправить машинку другу</button>
+      <button class="btn plain" id="cancel" type="button">Отмена</button>
+    </div>
+    <p class="warn" id="edMsg" hidden></p>
+  </section>
+
+  <section id="trackSec">
+    <div class="head-row"><h2>Трасса Гран-при</h2>
+      <label class="check" for="sound"><input type="checkbox" id="sound" checked> Звук</label>
+    </div>
+    <div class="track"><canvas id="race" width="300" height="200" aria-label="Гоночная трасса, вид сверху"></canvas></div>
+    <ol id="board" aria-label="Кто на каком месте"></ol>
+    <div class="actions">
+      <button class="btn big" id="go" type="button">Старт!</button>
+      <button class="btn plain" id="replay" type="button" hidden>Показать повтор</button>
+      <p class="hint" id="raceHint">Три круга. Машинки едут сами: всё решают характеристики и немного удачи.</p>
+    </div>
+  </section>
+
+  <section id="podium" hidden>
+    <h2 id="winner"></h2>
+    <ol id="places"></ol>
+  </section>
+
+  <section id="friend">
+    <h2>Гонка с другом</h2>
+    <p class="note" id="friendText"></p>
+    <ol id="friendSteps"></ol>
+  </section>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const MAX = 6, KEY2 = 'toyrace.cars.v2', KEY1 = 'toyrace.cars.v1';
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/*SIM-START*/
+/* ---------- circuit + deterministic race (same seed and cars give the same race on every device) ---------- */
+const TRACK_PTS = [[420, 532], [800, 522], [905, 462], [900, 372], [815, 322], [700, 336], [636, 276], [696, 200], [826, 152], [800, 78], [650, 66],
+  [520, 118], [470, 218], [380, 250], [300, 182], [250, 92], [140, 78], [78, 160], [108, 300], [88, 430], [180, 524]];
+const gridPos = i => -(Math.floor(i / 2) + 1) * GRID_GAP - (i % 2) * 25;   // two columns, like a real starting grid
+const LAPS = 3, NPT = 600, GRID_GAP = 50;
+function buildTrack() {
+  const P = TRACK_PTS, n = P.length, raw = [];
+  const cr = (a, b, c, d, t) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (3 * b - a - 3 * c + d) * t * t * t);
+  for (let i = 0; i < n; i++) {
+    const p0 = P[(i + n - 1) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
+    for (let j = 0; j < 24; j++) { const t = j / 24; raw.push([cr(p0[0], p1[0], p2[0], p3[0], t), cr(p0[1], p1[1], p2[1], p3[1], t)]); }
+  }
+  const m = raw.length, cum = [0];
+  for (let i = 0; i < m; i++) { const a = raw[i], b = raw[(i + 1) % m]; cum.push(cum[i] + Math.sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]))); }
+  const L = cum[m], ds = L / NPT, x = new Float64Array(NPT), y = new Float64Array(NPT);
+  for (let i = 0, j = 0; i < NPT; i++) {
+    const d = i * ds; while (cum[j + 1] < d) j++;
+    const f = (d - cum[j]) / (cum[j + 1] - cum[j]), a = raw[j], b = raw[(j + 1) % m];
+    x[i] = a[0] + (b[0] - a[0]) * f; y[i] = a[1] + (b[1] - a[1]) * f;
+  }
+  const k0 = new Float64Array(NPT), k = new Float64Array(NPT), W = 4;
+  for (let i = 0; i < NPT; i++) {
+    const a = (i + NPT - W) % NPT, b = (i + W) % NPT;
+    const ux = x[i] - x[a], uy = y[i] - y[a], vx = x[b] - x[i], vy = y[b] - y[i];
+    const lu = Math.sqrt(ux * ux + uy * uy), lv = Math.sqrt(vx * vx + vy * vy);
+    let c = (ux * vy - uy * vx) / (lu * lv); if (c < 0) c = -c;
+    k0[i] = c / ((lu + lv) / 2);
+  }
+  for (let i = 0; i < NPT; i++) { let s = 0; for (let o = -3; o <= 3; o++) s += k0[(i + o + NPT) % NPT]; k[i] = s / 7; }
+  return { x, y, k, ds, L };
+}
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function simulate(track, grid, seed) {
+  const R = rng(seed), N = NPT, ds = track.ds, total = LAPS * track.L, dt = 1 / 60, BRAKE = 520, MAXF = 60 * 150;
+  const cs = grid.map((g, i) => {
+    const vTop = 280 + g.s * 30, grip = 800 + g.n * 30, lim = new Float64Array(N);
+    for (let j = 0; j < N; j++) { const c = Math.sqrt(grip / (track.k[j] > 1e-6 ? track.k[j] : 1e-6)); lim[j] = c < vTop ? c : vTop; }
+    for (let p = 0; p < 2; p++) for (let j = N - 1; j >= 0; j--) { const nx = lim[(j + 1) % N], mx = Math.sqrt(nx * nx + 2 * BRAKE * ds); if (lim[j] > mx) lim[j] = mx; }
+    return { lim, acc: 140 + g.a * 36, vTop, pos: gridPos(i), v: 0, day: 0.98 + R() * 0.04, form: 1, tn: 0, fin: -1, frames: new Float32Array(MAXF) };
+  });
+  let f = 0, done = 0, tail = 0;
+  for (; f < MAXF; f++) {
+    for (const c of cs) {
+      if (c.fin < 0) {
+        c.tn -= dt;
+        if (c.tn <= 0) { c.form = 0.95 + R() * 0.1; c.tn = 0.6 + R() * 0.8; }
+        let j = Math.floor(c.pos / ds) % N; if (j < 0) j += N;
+        const target = c.lim[j] * c.form * c.day;
+        if (c.v < target) { c.v += c.acc * (1 - c.v * c.v / (c.vTop * c.vTop)) * dt; if (c.v > target) c.v = target; } else c.v = target;
+        const before = c.pos; c.pos += c.v * dt;
+        if (c.pos >= total) { c.fin = f + (total - before) / (c.pos - before); done++; }
+      } else { c.v *= 0.975; c.pos += c.v * dt; }
+      c.frames[f] = c.pos;
+    }
+    if (done === cs.length && ++tail > 100) { f++; break; }
+  }
+  const order = cs.map((c, i) => i).sort((a, b) => (cs[a].fin < 0 ? 1e9 : cs[a].fin) - (cs[b].fin < 0 ? 1e9 : cs[b].fin));
+  return { nFrames: f, frames: cs.map(c => c.frames), order, time: cs.map(c => c.fin < 0 ? 0 : c.fin / 60) };
+}
+/*SIM-END*/
+const track = buildTrack();
+
+/* ---------- rivals drawn by the page (fixed characteristics so every device agrees) ---------- */
+function rr(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
+function botSrc(body, trim) {   // top view, nose to the right
+  const c = document.createElement('canvas'); c.width = 240; c.height = 116;
+  const x = c.getContext('2d');
+  x.fillStyle = '#1b1b25'; for (const [wx, wy] of [[40, 4], [158, 4], [40, 92], [158, 92]]) { rr(x, wx, wy, 44, 20, 6); x.fill(); }
+  x.fillStyle = body; rr(x, 8, 16, 224, 84, 26); x.fill();
+  x.fillStyle = trim; x.fillRect(8, 52, 224, 12);
+  x.fillStyle = '#bfe6ff'; rr(x, 132, 26, 34, 64, 10); x.fill();
+  x.fillStyle = '#9fcbe6'; rr(x, 52, 30, 20, 56, 8); x.fill();
+  x.fillStyle = body; rr(x, 76, 28, 52, 60, 8); x.fill();
+  x.fillStyle = '#fff3a6'; rr(x, 222, 24, 9, 16, 4); x.fill(); rr(x, 222, 76, 9, 16, 4); x.fill();
+  return c.toDataURL();
+}
+const BOTS = [['bot1', 'Молния', '#e5352b', '#ffd84a', 7, 5, 6], ['bot2', 'Комета', '#2f6fe4', '#ffffff', 5, 7, 6], ['bot3', 'Шмель', '#f5a300', '#1d1b33', 6, 6, 6]]
+  .map(b => { const img = new Image(); const src = botSrc(b[2], b[3]); img.src = src; img.onload = () => idleDraw(); return { id: b[0], name: b[1], src, img, bot: true, stats: { s: b[4], a: b[5], n: b[6] } }; });
+
+/* ---------- characteristics: read from the photo itself (shape + colours), always 18 points in total ---------- */
+const STAT = [['s', 'Скорость'], ['a', 'Разгон'], ['n', 'Повороты']];
+function calcStats(src) {
+  const sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+  const c = document.createElement('canvas'); c.width = c.height = 16;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(src, 0, 0, 16, 16);
+  const d = x.getImageData(0, 0, 16, 16).data;
+  let sat = 0, dark = 0, cnt = 0, hs = 0;
+  for (let p = 0; p < d.length; p += 4) {
+    if (d[p + 3] < 128) continue;
+    const r = d[p], g = d[p + 1], b = d[p + 2];
+    sat += (Math.max(r, g, b) - Math.min(r, g, b)) / 255; dark += 1 - (r + g + b) / 765; cnt++;
+    hs = (hs + Math.imul(((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5), 2654435761)) >>> 0;   // order-free, so turning the photo keeps the stats
+  }
+  cnt = cnt || 1; hs ^= hs >>> 15; hs = Math.imul(hs, 2246822519) >>> 0; hs ^= hs >>> 13;
+  const cl = v => Math.max(0, Math.min(1, v)), rnd = k => ((hs >>> (k * 8)) & 255) / 255;
+  const long = Math.max(sw, sh) / Math.max(1, Math.min(sw, sh));
+  const raw = [cl((long - 1.4) / 1.8) * 0.6 + rnd(0) * 0.4, cl(sat / cnt * 1.6) * 0.6 + rnd(1) * 0.4, cl(dark / cnt * 1.3) * 0.6 + rnd(2) * 0.4];
+  const v = raw.map(r => Math.round(3 + cl(r) * 6));
+  let sum = v[0] + v[1] + v[2], guard = 40;
+  while (sum !== 18 && guard--) {
+    if (sum > 18) { const i = v.indexOf(Math.max(...v)); v[i]--; sum--; }
+    else { const i = v.indexOf(Math.min(...v)); v[i]++; sum++; }
+  }
+  return { s: v[0], a: v[1], n: v[2] };
+}
+function statsEl(st) {
+  const box = document.createElement('div'); box.className = 'stats';
+  for (const [k, label] of STAT) {
+    const l = document.createElement('span'); l.textContent = label;
+    const bar = document.createElement('span'); bar.className = 'bar'; const fill = document.createElement('i'); fill.style.width = st[k] * 10 + '%'; bar.append(fill);
+    const n = document.createElement('b'); n.textContent = st[k];
+    box.append(l, bar, n);
+  }
+  return box;
+}
+const okStats = s => s && [s.s, s.a, s.n].every(v => typeof v === 'number' && v >= 1 && v <= 10) ? { s: s.s, a: s.a, n: s.n } : { s: 6, a: 6, n: 6 };
+
+/* ---------- garage: shared through the artifact's database when available, otherwise kept on this device ---------- */
+let mode = 'wait', canWrite = true, db = null, downloads = null;
+let cars = [];                       // real cars: {id, name, src, stats, img}
+const imgCache = new Map();          // src -> Image
+function imgFor(src) {
+  let im = imgCache.get(src);
+  if (!im) { im = new Image(); im.onload = () => idleDraw(); if (typeof src === 'string' && src.startsWith('data:image/')) im.src = src; imgCache.set(src, im); }
+  return im;
+}
+function setCars(list) {
+  cars = list.filter(c => c && typeof c.src === 'string').slice(0, 12).map(c => ({ id: String(c.id), name: String(c.name || 'Машинка').slice(0, 16), src: c.src, stats: okStats(c.stats), at: +c.at || 0, img: imgFor(c.src) }))
+    .sort((a, b) => a.at - b.at);
+  renderGarage(); idleDraw();
+}
+function saveLocal() { try { localStorage.setItem(KEY2, JSON.stringify(cars.map(c => ({ id: c.id, name: c.name, src: c.src, stats: c.stats, at: c.at })))); } catch (e) {} }
+function loadLocal() {
+  let list = null;
+  try { list = JSON.parse(localStorage.getItem(KEY2)); } catch (e) {}
+  if (!Array.isArray(list)) {
+    try { list = (JSON.parse(localStorage.getItem(KEY1)) || []).filter(c => !c.example).map((c, i) => ({ id: 'old' + i, name: c.name, src: c.src, stats: c.stats, at: i })); } catch (e) { list = []; }
+  }
+  setCars(Array.isArray(list) ? list : []);
+}
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function writeFailed(e) {
+  if (e && (e.code === 'invalid_argument' || e.code === 'revoked' || e.code === 'not_granted')) { canWrite = false; updateMode(); return 'У тебя здесь нет права менять общий гараж. Сохрани машинку файлом и отправь хозяину страницы.'; }
+  if (e && e.code === 'quota_exceeded') return 'В общем гараже кончилось место. Убери лишние машинки.';
+  return 'Не получилось связаться с общим гаражом. Попробуй ещё раз.';
+}
+async function addCar(name, src, stats) {
+  const car = { name, src, stats, at: Date.now() };
+  if (mode === 'shared') { await db.collection('cars').add(car); return; }
+  cars.push({ id: newId(), ...car, img: imgFor(src) }); saveLocal(); renderGarage(); idleDraw();
+}
+async function removeCar(c) {
+  if (mode === 'shared') { try { await db.doc('cars/' + c.id).delete(); } catch (e) { $('garageHint').textContent = writeFailed(e); } return; }
+  cars = cars.filter(k => k !== c); saveLocal(); renderGarage(); idleDraw();
+}
+function entrants() {
+  const list = cars.slice(0, MAX);
+  if ($('bots').checked) for (const b of BOTS) if (list.length < 9) list.push(b);
+  return list;
+}
+function findImg(id) { const c = cars.find(k => k.id === id) || BOTS.find(k => k.id === id); return c ? c.img : null; }
+
+function renderGarage() {
+  const box = $('cars'); box.textContent = '';
+  const card = (c) => {
+    const el = document.createElement('div'); el.className = 'car';
+    const pic = document.createElement('div'); pic.className = 'car-pic';
+    const im = document.createElement('img'); im.src = c.src; im.alt = ''; pic.append(im);
+    const nm = document.createElement('div'); nm.className = 'car-name'; nm.textContent = c.name;
+    el.append(pic, nm);
+    if (c.bot) { const t = document.createElement('div'); t.className = 'tag'; t.textContent = 'соперник-пример'; el.append(t); }
+    el.append(statsEl(c.stats));
+    if (!c.bot && canWrite) {
+      const rm = document.createElement('button'); rm.type = 'button'; rm.textContent = 'Убрать';
+      rm.setAttribute('aria-label', 'Убрать машинку ' + c.name);
+      rm.onclick = () => removeCar(c);
+      el.append(rm);
+    }
+    return el;
+  };
+  if (mode === 'wait') { const p = document.createElement('p'); p.className = 'empty'; p.textContent = 'Открываю гараж…'; box.append(p); }
+  else if (!cars.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = 'Здесь появятся ваши машинки: фото, имя и характеристики. Сфотографируй первую!'; box.append(p); }
+  for (const c of cars) box.append(card(c));
+  if ($('bots').checked) for (const b of BOTS) box.append(card(b));
+  $('count').textContent = mode === 'wait' ? '' : cars.length + ' из ' + MAX;
+}
+function updateMode() {
+  const full = cars.length >= MAX;
+  const steps = (...lines) => { const ol = $('friendSteps'); ol.textContent = ''; for (const t of lines) { const li = document.createElement('li'); li.textContent = t; ol.append(li); } };
+  if (mode === 'wait') { $('modeNote').textContent = 'Открываю гараж…'; $('friendText').textContent = 'Проверяю, доступен ли общий гараж…'; steps(); }
+  else if (mode === 'local') {
+    $('modeNote').textContent = 'Гараж хранится только на этом устройстве.';
+    $('friendText').textContent = 'Общий гараж здесь недоступен, поэтому машинками можно обмениваться файлами.';
+    steps('Друг открывает эту страницу у себя, фотографирует машинку и жмёт «Отправить машинку другу».', 'Он присылает тебе этот файл в любом мессенджере.', 'Ты жмёшь «Выбрать фото или файл машинки», добавляешь её в гараж и запускаешь гонку.');
+  } else if (canWrite) {
+    $('modeNote').textContent = 'Гараж общий: машинки и заезды видят все, у кого открыта эта страница.';
+    $('friendText').textContent = 'Отправь другу ссылку на эту страницу через меню Share. Заезд, который ты запускаешь, он увидит у себя на экране одновременно с тобой.';
+    steps('Если у друга есть право редактировать страницу, он сам фотографирует машинку, и она появляется в общем гараже.', 'Если он может только смотреть, он фотографирует машинку у себя, жмёт «Отправить машинку другу» и присылает файл тебе.', 'Ты добавляешь его файл кнопкой «Выбрать фото или файл машинки» и жмёшь «Старт!».');
+  } else {
+    $('modeNote').textContent = 'Ты зритель: видишь общий гараж и все заезды, но менять их не можешь.';
+    $('friendText').textContent = 'Чтобы твоя машинка попала на трассу, передай её хозяину страницы.';
+    steps('Сфотографируй машинку здесь: увидишь её характеристики.', 'Нажми «Отправить машинку другу» и отправь файл хозяину страницы.', 'Когда он добавит её и нажмёт «Старт!», гонка начнётся и на твоём экране.');
+  }
+  $('go').hidden = mode !== 'wait' && !canWrite;
+  $('save').hidden = !canWrite;
+  $('bots').closest('label').hidden = !canWrite;
+  $('raceHint').textContent = canWrite ? 'Три круга. Машинки едут сами: всё решают характеристики и немного удачи.' : 'Ждём, когда хозяин страницы нажмёт «Старт!». Гонка начнётся сама.';
+  $('lblCam').classList.toggle('off', canWrite && full); $('lblFile').classList.toggle('off', canWrite && full);
+  if (canWrite && full) $('garageHint').textContent = 'Гараж полон. Убери одну машинку, чтобы добавить новую.';
+}
+
+/* ---------- photo → cut-out car ---------- */
+let srcImg = null, cut = null, rot = 0, flipped = false, preCut = false, curStats = null;
+function cutout(img, tol) {
+  const m = 600, s = Math.min(1, m / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.max(2, Math.round(img.naturalWidth * s)), h = Math.max(2, Math.round(img.naturalHeight * s));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, w, h);
+  const hi = (sx, sy, sw, sh) => {            // full-resolution crop of the original photo
+    const k = img.naturalWidth / w, os = Math.min(1, 900 / (sw * k));
+    const o = document.createElement('canvas'); o.width = Math.max(1, Math.round(sw * k * os)); o.height = Math.max(1, Math.round(sh * k * os));
+    const ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high';
+    ox.drawImage(img, sx * k, sy * k, sw * k, sh * k, 0, 0, o.width, o.height);
+    return o;
+  };
+  if (tol <= 0) return { canvas: hi(0, 0, w, h), bad: false };
+  const id = x.getImageData(0, 0, w, h), d = id.data, n = w * h;
+  // decide on a blurred copy, so wood grain and carpet texture do not confuse the mask
+  const bl = new Float32Array(n * 3), tmp = new Float32Array(n * 3), R = 3;
+  for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
+    let r = 0, g2 = 0, b2 = 0, k = 0;
+    for (let o = -R; o <= R; o++) { const u = xx + o; if (u < 0 || u >= w) continue; const p = (y * w + u) * 4; r += d[p]; g2 += d[p + 1]; b2 += d[p + 2]; k++; }
+    const t = (y * w + xx) * 3; tmp[t] = r / k; tmp[t + 1] = g2 / k; tmp[t + 2] = b2 / k;
+  }
+  for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
+    let r = 0, g2 = 0, b2 = 0, k = 0;
+    for (let o = -R; o <= R; o++) { const v = y + o; if (v < 0 || v >= h) continue; const p = (v * w + xx) * 3; r += tmp[p]; g2 += tmp[p + 1]; b2 += tmp[p + 2]; k++; }
+    const t = (y * w + xx) * 3; bl[t] = r / k; bl[t + 1] = g2 / k; bl[t + 2] = b2 / k;
+  }
+  // fit a smooth background (handles uneven light) to the outer frame of the photo
+  const basis = p => { const u = (p % w) / w * 2 - 1, v = ((p / w) | 0) / h * 2 - 1; return [1, u, v, u * u, u * v, v * v]; };
+  const A = Array.from({ length: 6 }, () => new Float64Array(9));   // normal equations, 3 right-hand sides
+  const ring = [];
+  for (let p = 0; p < n; p += 3) {
+    const u = (p % w) / w * 2 - 1, v = ((p / w) | 0) / h * 2 - 1;
+    if (Math.abs(u) <= 0.7 && Math.abs(v) <= 0.7) continue;
+    ring.push(p); const f = basis(p);
+    for (let i = 0; i < 6; i++) { for (let j = 0; j < 6; j++) A[i][j] += f[i] * f[j]; for (let k = 0; k < 3; k++) A[i][6 + k] += f[i] * bl[p * 3 + k]; }
+  }
+  for (let i = 0; i < 6; i++) {
+    let piv = i; for (let r = i + 1; r < 6; r++) if (Math.abs(A[r][i]) > Math.abs(A[piv][i])) piv = r;
+    [A[i], A[piv]] = [A[piv], A[i]];
+    const dv = A[i][i] || 1e-9;
+    for (let j = i; j < 9; j++) A[i][j] /= dv;
+    for (let r = 0; r < 6; r++) if (r !== i) { const m = A[r][i]; if (m) for (let j = i; j < 9; j++) A[r][j] -= m * A[i][j]; }
+  }
+  // distance to the background: darker-than-background (shadows) counts least
+  const dist = p => {
+    const f = basis(p); let r = bl[p * 3], g2 = bl[p * 3 + 1], b2 = bl[p * 3 + 2];
+    for (let i = 0; i < 6; i++) { r -= f[i] * A[i][6]; g2 -= f[i] * A[i][7]; b2 -= f[i] * A[i][8]; }
+    const L = (r + g2 + b2) / 3, cr = r - L, cg = g2 - L, cb = b2 - L;
+    return Math.sqrt(3 * (L < 0 ? 0.15 : 0.6) * L * L + 3 * (cr * cr + cg * cg + cb * cb));
+  };
+  // how uneven the background itself is sets the base threshold
+  const ed = ring.map(dist).sort((u, v) => u - v);
+  const T = Math.max(22, ed[Math.floor(ed.length * 0.95)] * 2.2) * (tol / 40);
+  const edge = [];
+  for (let i = 0; i < w; i++) edge.push(i, (h - 1) * w + i);
+  for (let j = 1; j < h - 1; j++) edge.push(j * w, j * w + w - 1);
+  const mask = new Uint8Array(n);            // 1 = background
+  const q = new Int32Array(n); let qh = 0, qt = 0;
+  for (const p of edge) if (!mask[p] && dist(p) < T) { mask[p] = 1; q[qt++] = p; }
+  const tryPush = nb => { if (!mask[nb] && dist(nb) < T) { mask[nb] = 1; q[qt++] = nb; } };
+  while (qh < qt) {
+    const p = q[qh++], px = p % w;
+    if (px > 0) tryPush(p - 1);
+    if (px < w - 1) tryPush(p + 1);
+    if (p >= w) tryPush(p - w);
+    if (p < n - w) tryPush(p + w);
+  }
+  // open the mask: shave thin bridges and crumbs, then grow back
+  const morph = (grow) => {
+    const src = mask.slice();
+    for (let p = 0; p < n; p++) {
+      const px = p % w, v = grow ? 0 : 1;
+      if (src[p] === v) continue;
+      if ((px > 0 && src[p - 1] === v) || (px < w - 1 && src[p + 1] === v) || (p >= w && src[p - w] === v) || (p < n - w && src[p + w] === v)) mask[p] = v;
+    }
+  };
+  morph(false); morph(false); morph(false);
+  // keep only the big foreground blobs (drops crumbs and specks)
+  const lab = new Int32Array(n); const sizes = [0]; let cur = 0;
+  for (let s0 = 0; s0 < n; s0++) {
+    if (mask[s0] || lab[s0]) continue;
+    cur++; let cnt = 0; qh = qt = 0; q[qt++] = s0; lab[s0] = cur;
+    while (qh < qt) {
+      const p = q[qh++], px = p % w; cnt++;
+      if (px > 0 && !mask[p - 1] && !lab[p - 1]) { lab[p - 1] = cur; q[qt++] = p - 1; }
+      if (px < w - 1 && !mask[p + 1] && !lab[p + 1]) { lab[p + 1] = cur; q[qt++] = p + 1; }
+      if (p >= w && !mask[p - w] && !lab[p - w]) { lab[p - w] = cur; q[qt++] = p - w; }
+      if (p < n - w && !mask[p + w] && !lab[p + w]) { lab[p + w] = cur; q[qt++] = p + w; }
+    }
+    sizes.push(cnt);
+  }
+  const biggest = Math.max(0, ...sizes);
+  let x0 = w, y0 = h, x1 = -1, y1 = -1, area = 0;
+  for (let p = 0; p < n; p++) {
+    const keep = lab[p] && sizes[lab[p]] >= biggest * 0.3;
+    if (!keep) { mask[p] = 1; continue; }
+    area++; const px = p % w, py = (p / w) | 0;
+    if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+  }
+  morph(true); morph(true); morph(true);
+  x0 = Math.max(0, x0 - 4); y0 = Math.max(0, y0 - 4); x1 = Math.min(w - 1, x1 + 4); y1 = Math.min(h - 1, y1 + 4);
+  for (let p = 0; p < n; p++) {
+    if (mask[p]) { d[p * 4 + 3] = 0; continue; }
+    const px = p % w;
+    const rim = (px > 0 && mask[p - 1]) || (px < w - 1 && mask[p + 1]) || (p >= w && mask[p - w]) || (p < n - w && mask[p + w]);
+    if (rim) d[p * 4 + 3] = 150;
+  }
+  const bad = area < n * 0.02 || area > n * 0.93;
+  if (x1 < 0) return { canvas: hi(0, 0, w, h), bad: true };
+  // the small canvas now only carries the mask; stretch it smoothly over the sharp original
+  x.putImageData(id, 0, 0);
+  const o = hi(x0, y0, x1 - x0 + 1, y1 - y0 + 1), ox = o.getContext('2d');
+  ox.globalCompositeOperation = 'destination-in';
+  ox.drawImage(c, x0, y0, x1 - x0 + 1, y1 - y0 + 1, 0, 0, o.width, o.height);
+  return { canvas: o, bad };
+}
+function finalCanvas(maxW) {
+  const turned = rot % 2 === 1, sw = turned ? cut.height : cut.width, sh = turned ? cut.width : cut.height;
+  const s = Math.min(1, (maxW || 640) / sw);
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(sw * s)); c.height = Math.max(1, Math.round(sh * s));
+  const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+  x.translate(c.width / 2, c.height / 2); if (flipped) x.scale(-1, 1); x.rotate(rot * Math.PI / 2);
+  x.drawImage(cut, -cut.width * s / 2, -cut.height * s / 2, cut.width * s, cut.height * s);
+  return c;
+}
+function encodeCar() {       // small enough for one shared-garage record, still sharp at track size
+  let url = '';
+  for (const w of [480, 400, 320, 240, 180]) {
+    const c = finalCanvas(w);
+    url = c.toDataURL('image/webp', 0.9);
+    if (!url.startsWith('data:image/webp')) url = c.toDataURL('image/png');
+    if (url.length < 230000) break;
+  }
+  return url;
+}
+function refreshPreview() {
+  if (!srcImg) return;
+  const r = cutout(srcImg, preCut ? 0 : +$('tol').value);
+  cut = r.canvas; $('warn').hidden = !r.bad;
+  const f = finalCanvas(), p = $('preview');
+  p.width = f.width; p.height = f.height; p.getContext('2d').drawImage(f, 0, 0);
+  curStats = calcStats(f); $('edStats').replaceChildren(statsEl(curStats));
+}
+function hasAlpha(img) {
+  const c = document.createElement('canvas'); c.width = c.height = 48;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, 48, 48);
+  const d = x.getImageData(0, 0, 48, 48).data; let n = 0;
+  for (let p = 3; p < d.length; p += 4) if (d[p] < 200) n++;
+  return n > 48 * 48 * 0.05;
+}
+function loadImg(blob) {
+  return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(blob); });
+}
+let heicLib = null;
+function needHeic() {   // iPhone photos (HEIC) are not readable by most browsers; convert them
+  return heicLib || (heicLib = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js';
+    s.onload = res; s.onerror = () => { heicLib = null; rej(); }; document.head.append(s);
+  }));
+}
+async function onPhoto(e) {
+  const file = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  let img;
+  try { img = await loadImg(file); }
+  catch (err) {
+    $('garageHint').textContent = 'Открываю фото с айфона, подожди несколько секунд…';
+    try {
+      await needHeic();
+      const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+      img = await loadImg(Array.isArray(out) ? out[0] : out);
+      $('garageHint').textContent = 'Фото открылось.';
+    } catch (err2) { $('garageHint').textContent = 'Это фото не открылось. Попробуй снять ещё раз.'; return; }
+  }
+  srcImg = img; rot = 0; flipped = false; preCut = hasAlpha(img); $('tol').value = 40; $('tolField').hidden = preCut;
+  const m = /^mashinka-(.+)\.(png|webp)$/i.exec(file.name || '');
+  $('carName').value = m ? m[1].replace(/[-_]+/g, ' ').slice(0, 16) : '';
+  $('edMsg').hidden = true; $('editor').hidden = false; refreshPreview();
+  $('editor').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+}
+$('photoCam').addEventListener('change', onPhoto);
+$('photoFile').addEventListener('change', onPhoto);
+$('tol').addEventListener('input', refreshPreview);
+$('rot').onclick = () => { rot = (rot + 1) % 4; refreshPreview(); };
+$('flip').onclick = () => { flipped = !flipped; refreshPreview(); };
+$('cancel').onclick = () => { $('editor').hidden = true; srcImg = null; };
+const edName = () => $('carName').value.trim() || 'Машинка ' + (cars.length + 1);
+const edSay = t => { $('edMsg').textContent = t; $('edMsg').hidden = false; };
+$('save').onclick = async () => {
+  if (!cut || !canWrite) return;
+  if (cars.length >= MAX) { edSay('Гараж полон. Убери одну машинку, чтобы добавить новую.'); return; }
+  $('save').disabled = true;
+  try {
+    await addCar(edName(), encodeCar(), curStats);
+    $('editor').hidden = true; srcImg = null;
+    $('trackSec').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  } catch (e) { edSay(writeFailed(e)); }
+  $('save').disabled = false;
+};
+$('export').onclick = async () => {
+  if (!cut) return;
+  const blob = await new Promise(r => finalCanvas().toBlob(r, 'image/png'));
+  const safe = edName().replace(/[^0-9A-Za-zА-Яа-яЁё]+/g, '-').replace(/^-+|-+$/g, '') || 'car';
+  if (!downloads) {
+    if (window.claude) { edSay('Сохранение файлов здесь недоступно. Сделай снимок экрана с машинкой и отправь его другу.'); return; }
+    // the page runs as an ordinary website: hand the file to the phone's share sheet, or download it
+    const file = new File([blob], 'mashinka-' + safe + '.png', { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Моя машинка' }); edSay('Готово. Друг добавит машинку кнопкой «Выбрать фото или файл машинки».'); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = file.name; document.body.append(link); link.click(); link.remove();
+    edSay('Файл сохранён. Отправь его другу: он добавит машинку кнопкой «Выбрать фото или файл машинки».'); return;
+  }
+  try { await downloads.save({ filename: 'mashinka-' + safe + '.png', data: blob }); edSay('Файл сохранён. Отправь его другу: он добавит машинку кнопкой «Выбрать фото или файл машинки».'); }
+  catch (e) { if (!e || e.code !== 'declined') edSay('Файл не сохранился. Попробуй ещё раз.'); }
+};
+
+/* ---------- sound ---------- */
+let ac = null;
+function beep(f, dur, type, vol) {
+  if (!ac || !$('sound').checked) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  o.type = type || 'square'; o.frequency.value = f;
+  g.gain.setValueAtTime(vol || 0.07, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur);
+}
+
+/* ---------- circuit view ---------- */
+const cv = $('race'), cx = cv.getContext('2d');
+const TW = 54, LIGHTS = 3.4;
+let W = 300, H = 200, sc = 0.3, portrait = false, bg = null;
+let play = null, lastRace = null, lastRaceId = '', conf = [];   // play: {grid, sim, t0, lights, won}
+const S = (x, y) => portrait ? [y * sc, x * sc] : [x * sc, y * sc];
+function at(pos, lane) {
+  const N = NPT; let f = pos / track.ds % N; if (f < 0) f += N;
+  const i = Math.floor(f) % N, j = (i + 1) % N, t = f - Math.floor(f);
+  const tx = track.x[j] - track.x[i], ty = track.y[j] - track.y[i], tl = Math.sqrt(tx * tx + ty * ty) || 1;
+  const x = track.x[i] + tx * t - ty / tl * lane, y = track.y[i] + ty * t + tx / tl * lane;
+  const p = S(x, y), q = S(x + tx, y + ty);
+  return { x: p[0], y: p[1], ang: Math.atan2(q[1] - p[1], q[0] - p[0]) };
+}
+function drawBg() {
+  bg = document.createElement('canvas'); bg.width = cv.width; bg.height = cv.height;
+  const g = bg.getContext('2d'); g.setTransform(cv.width / W, 0, 0, cv.width / W, 0, 0);
+  g.fillStyle = '#3f9b4b'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#44a551'; const band = 46 * sc; for (let x = 0; x < W; x += band * 2) g.fillRect(x, 0, band, H);
+  const path = () => { g.beginPath(); for (let i = 0; i < NPT; i++) { const p = S(track.x[i], track.y[i]); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); } g.closePath(); };
+  g.lineJoin = 'round';
+  path(); g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = (TW + 26) * sc; g.stroke();          // run-off shadow
+  path(); g.strokeStyle = '#e5352b'; g.lineWidth = (TW + 14) * sc; g.stroke();                   // kerbs: red…
+  g.setLineDash([13 * sc, 13 * sc]); path(); g.strokeStyle = '#fffdf5'; g.stroke(); g.setLineDash([]);  // …and white
+  path(); g.strokeStyle = '#2c2f45'; g.lineWidth = TW * sc; g.stroke();                           // asphalt
+  g.setLineDash([10 * sc, 16 * sc]); path(); g.strokeStyle = 'rgba(255,253,245,.22)'; g.lineWidth = 1.5 * sc + 0.5; g.stroke(); g.setLineDash([]);
+  // grid slots behind the line
+  g.strokeStyle = 'rgba(255,253,245,.75)'; g.lineWidth = Math.max(1, 2 * sc);
+  for (let k = 0; k < 9; k++) {
+    const lane = k % 2 ? 12 : -12, a = at(gridPos(k) + 27, lane - 10), b = at(gridPos(k) + 27, lane + 10);
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+  }
+  // start/finish checker
+  const q = TW / 8;
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) {
+    const p1 = at(r * q, -TW / 2 + c * q), p2 = at(r * q, -TW / 2 + (c + 1) * q), p3 = at((r + 1) * q, -TW / 2 + (c + 1) * q), p4 = at((r + 1) * q, -TW / 2 + c * q);
+    g.fillStyle = (r + c) % 2 ? '#1d1b33' : '#fffdf5';
+    g.beginPath(); g.moveTo(p1.x, p1.y); g.lineTo(p2.x, p2.y); g.lineTo(p3.x, p3.y); g.lineTo(p4.x, p4.y); g.closePath(); g.fill();
+  }
+}
+function layout() {
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  W = Math.max(260, cv.parentElement.clientWidth);
+  portrait = W < 560;
+  sc = portrait ? W / 620 : W / 1000;
+  H = Math.round(portrait ? 1000 * sc : 620 * sc);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.imageSmoothingQuality = 'high';
+  drawBg(); draw();
+}
+function drawCar(img, name, pos, lane, moving) {
+  const p = at(pos, lane), len = Math.max(48 * sc, 30);
+  cx.save(); cx.translate(p.x, p.y); cx.rotate(p.ang);
+  const iw = img && img.naturalWidth, ih = img && img.naturalHeight;
+  cx.fillStyle = 'rgba(0,0,0,.3)'; cx.beginPath(); cx.ellipse(1.5, 2.5, len * 0.5, len * 0.24, 0, 0, 7); cx.fill();
+  if (iw) { const s = Math.min(len / iw, len * 0.62 / ih); cx.drawImage(img, -iw * s / 2, -ih * s / 2, iw * s, ih * s); }
+  else { cx.fillStyle = '#cfd3dc'; rr(cx, -len / 2, -len * 0.22, len, len * 0.44, 4); cx.fill(); }
+  cx.restore();
+  cx.font = '500 ' + Math.max(10, Math.min(13, 15 * sc + 4)) + 'px Rubik, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'bottom';
+  cx.lineWidth = 3; cx.lineJoin = 'round'; cx.strokeStyle = 'rgba(29,27,51,.85)'; cx.strokeText(name, p.x, p.y - len * 0.4);
+  cx.fillStyle = '#fffdf5'; cx.fillText(name, p.x, p.y - len * 0.4);
+}
+function banner(text, size, y) {
+  cx.save(); cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.font = size + 'px "Russo One", "Arial Black", sans-serif';
+  while (size > 14 && cx.measureText(text).width > W - 24) { size -= 2; cx.font = size + 'px "Russo One", "Arial Black", sans-serif'; }
+  cx.lineWidth = Math.max(4, size / 7); cx.lineJoin = 'round'; cx.strokeStyle = '#1d1b33'; cx.strokeText(text, W / 2, y);
+  cx.fillStyle = '#ffd84a'; cx.fillText(text, W / 2, y); cx.restore();
+}
+function draw() {
+  if (!bg) return;
+  cx.drawImage(bg, 0, 0, W, H);
+  if (play) {
+    const t = (performance.now() - play.t0) / 1000 - LIGHTS, sim = play.sim;
+    const f = Math.max(0, Math.min(sim.nFrames - 1, Math.floor(t * 60)));
+    const idx = play.grid.map((g, i) => i).sort((a, b) => sim.frames[a][f] - sim.frames[b][f]);   // leader drawn last, on top
+    for (const i of idx) { const g = play.grid[i]; drawCar(g.img || (g.img = findImg(g.id)), g.name, sim.frames[i][f], i % 2 ? 12 : -12, t > 0); }
+    if (t < 0.9) {            // five red lights, then lights out
+      const lit = t >= 0 ? 0 : Math.min(5, Math.floor((t + LIGHTS) / 0.6)), r = Math.max(7, 13 * sc), pw = r * 13, x0 = W / 2 - pw / 2, y0 = H * 0.5 - r * 1.6;
+      cx.fillStyle = '#14131f'; rr(cx, x0, y0, pw, r * 3.2, r * 0.8); cx.fill();
+      for (let k = 0; k < 5; k++) { cx.fillStyle = k < lit ? '#ff3b2f' : '#3a3847'; cx.beginPath(); cx.arc(x0 + r * 1.5 + k * r * 2.5, y0 + r * 1.6, r, 0, 7); cx.fill(); }
+    }
+    if (t >= 0) {
+      const lead = Math.max(...sim.frames.map(fr => fr[f]));
+      const lap = Math.max(1, Math.min(LAPS, Math.floor(lead / track.L) + 1));
+      cx.font = Math.max(13, 20 * sc + 6) + 'px "Russo One", "Arial Black", sans-serif'; cx.textAlign = 'left'; cx.textBaseline = 'top';
+      cx.lineWidth = 4; cx.lineJoin = 'round'; cx.strokeStyle = '#1d1b33'; cx.strokeText('Круг ' + lap + ' / ' + LAPS, 12, 10);
+      cx.fillStyle = '#fffdf5'; cx.fillText('Круг ' + lap + ' / ' + LAPS, 12, 10);
+    }
+    if (play.won) banner('Победа: ' + play.grid[sim.order[0]].name + '!', Math.min(38, W / 13), H * 0.5);
+  } else {
+    entrants().forEach((c, i) => drawCar(c.img, c.name, gridPos(i), i % 2 ? 12 : -12, false));
+    if (mode !== 'wait' && entrants().length < 2) banner('Нужны хотя бы две машинки', Math.min(30, W / 14), H * 0.5);
+  }
+  for (const p of conf) { cx.save(); cx.translate(p.x, p.y); cx.rotate(p.a); cx.fillStyle = p.c; cx.fillRect(-4, -2.5, 8, 5); cx.restore(); }
+}
+function idleDraw() { if (!play) draw(); }
+function confetti() {
+  if (reduced) return;
+  const cols = ['#ffd84a', '#e5352b', '#2f6fe4', '#fffdf5', '#39b36b'];
+  for (let i = 0; i < 110; i++) conf.push({ x: W * (0.1 + Math.random() * 0.8), y: -10, vx: (Math.random() - 0.5) * 220, vy: 40 + Math.random() * 160, a: Math.random() * 6, va: (Math.random() - 0.5) * 12, life: 3.5, c: cols[i % cols.length] });
+}
+
+/* ---------- race flow ---------- */
+function board(order, grid) {
+  const ol = $('board'); ol.textContent = '';
+  order.forEach((i, k) => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = k + 1; li.append(b, document.createTextNode(grid[i].name)); ol.append(li); });
+}
+function showPodium(race) {
+  const ol = $('places'); ol.textContent = '';
+  race.sim.order.forEach((i, k) => {
+    const g = race.grid[i], li = document.createElement('li');
+    const pl = document.createElement('span'); pl.className = 'place'; pl.textContent = k + 1;
+    const im = document.createElement('img'); const src = findImg(g.id); if (src) im.src = src.src; im.alt = '';
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = g.name;
+    const tm = document.createElement('span'); tm.className = 'tm'; tm.textContent = race.sim.time[i] ? race.sim.time[i].toFixed(1).replace('.', ',') + ' с' : '';
+    li.append(pl, im, nm, tm); ol.append(li);
+  });
+  $('winner').textContent = 'Первое место: ' + race.grid[race.sim.order[0]].name + '!';
+  $('podium').hidden = false; $('replay').hidden = false;
+  board(race.sim.order, race.grid);
+}
+function readRace(data) {       // the shared record is other people's data: validate before use
+  if (!data || typeof data.id !== 'string' || !Array.isArray(data.grid) || data.grid.length < 2 || data.grid.length > 9) return null;
+  const grid = data.grid.map(g => ({ id: String(g && g.id), name: String((g && g.name) || 'Машинка').slice(0, 16), ...okStats(g) }));
+  return { id: data.id, at: +data.at || 0, grid, sim: simulate(track, grid, +data.seed >>> 0) };
+}
+function onRace(data, live) {
+  if (!data || data.id === lastRaceId) return;
+  const race = readRace(data); if (!race) return;
+  lastRaceId = race.id; lastRace = race;
+  if (live) startPlay(race); else if (!play) showPodium(race);
+}
+function startPlay(race) {
+  play = { grid: race.grid, sim: race.sim, race, t0: performance.now(), lights: 0, won: false, tick: 0 };
+  conf = []; $('podium').hidden = true; $('go').disabled = true; $('replay').hidden = true;
+  board(race.grid.map((g, i) => i), race.grid);
+  $('trackSec').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+}
+$('go').onclick = async () => {
+  if (play || !canWrite || mode === 'wait') return;
+  const list = entrants();
+  if (list.length < 2) { $('raceHint').textContent = 'Для гонки нужны хотя бы две машинки. Добавь ещё одну или включи соперников-примеры.'; return; }
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) {}
+  for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }   // starting grid by lot
+  const data = { id: newId(), seed: Math.floor(Math.random() * 4294967296), at: Date.now(), grid: list.map(c => ({ id: c.id, name: c.name, s: c.stats.s, a: c.stats.a, n: c.stats.n })) };
+  if (mode === 'shared') {
+    $('go').disabled = true;
+    try { await db.doc('race/current').set(data); } catch (e) { $('raceHint').textContent = writeFailed(e); $('go').disabled = false; return; }
+  }
+  onRace(data, true);
+};
+$('replay').onclick = () => {
+  if (play || !lastRace) return;
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) {}
+  startPlay(lastRace);
+};
+$('bots').onchange = () => { try { localStorage.setItem('toyrace.bots', $('bots').checked ? '1' : '0'); } catch (e) {} renderGarage(); idleDraw(); };
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+  if (play) {
+    const t = (now - play.t0) / 1000 - LIGHTS, sim = play.sim;
+    const lit = t >= 0 ? 6 : Math.min(5, Math.floor((t + LIGHTS) / 0.6));
+    if (lit !== play.lights) { play.lights = lit; if (lit === 6) beep(880, 0.6); else if (lit > 0) beep(440, 0.15); }
+    if (t >= 0) {
+      const f = Math.min(sim.nFrames - 1, Math.floor(t * 60));
+      if (!play.won && sim.time[sim.order[0]] && t >= sim.time[sim.order[0]]) { play.won = true; confetti(); [523, 659, 784, 1047].forEach((fq, k) => setTimeout(() => beep(fq, 0.25, 'triangle', 0.1), k * 130)); }
+      if (++play.tick % 20 === 0 && !play.won) board(play.grid.map((g, i) => i).sort((a, b) => sim.frames[b][f] - sim.frames[a][f]), play.grid);
+      if (t * 60 >= sim.nFrames + 60) { const race = play.race; play = null; $('go').disabled = false; $('go').textContent = 'Ещё заезд'; showPodium(race); }
+    }
+  }
+  for (const p of conf) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 260 * dt; p.a += p.va * dt; p.life -= dt; }
+  conf = conf.filter(p => p.life > 0 && p.y < H + 10);
+  if (play || conf.length) draw(); else if (frame.dirty) { frame.dirty = false; draw(); }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- start-up ---------- */
+async function init() {
+  try { $('bots').checked = localStorage.getItem('toyrace.bots') !== '0'; } catch (e) {}
+  renderGarage(); updateMode(); layout();
+  const use = n => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
+  use('downloads').then(d => { downloads = d; });
+  let user = null;
+  [db, user] = await Promise.all([use('db'), use('user')]);
+  if (!db) { mode = 'local'; loadLocal(); updateMode(); return; }
+  mode = 'shared';
+  try { if (user && (await user.can('data.write')) === false) canWrite = false; } catch (e) {}
+  updateMode(); renderGarage();
+  const slow = setTimeout(() => { $('modeNote').textContent = 'Общий гараж пока не отвечает. Проверь интернет, страница продолжит попытки сама.'; }, 10000);
+  db.collection('cars').onSnapshot(snap => {
+    if (!snap.metadata.fromCache) clearTimeout(slow);
+    setCars(snap.docs.map(d => ({ id: d.id, ...d.data() }))); updateMode();
+  }, () => { clearTimeout(slow); $('modeNote').textContent = 'Связь с общим гаражом потеряна. Обнови страницу.'; });
+  let firstRace = true;
+  db.doc('race/current').onSnapshot(s => {
+    const d = s.exists ? s.data() : null;
+    if (d) onRace(d, !firstRace || Date.now() - (+d.at || 0) < 8000);
+    firstRace = false;
+  }, () => {});
+}
+addEventListener('resize', () => { if (Math.abs(cv.parentElement.clientWidth - W) > 1) layout(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => idleDraw());
+init();
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
