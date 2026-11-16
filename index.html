@@ -186,10 +186,19 @@ section { display: flex; flex-direction: column; gap: 12px; }
   <section id="friend">
     <h2>Гонка с другом</h2>
     <p class="note" id="friendText"></p>
+    <div class="actions" id="linkRow" hidden>
+      <label class="field" for="roomLink" style="flex:1 1 260px;min-width:0">Ссылка на ваш общий гараж
+        <input type="text" id="roomLink" readonly style="max-width:none">
+      </label>
+      <button class="btn blue" id="copyLink" type="button">Скопировать ссылку</button>
+    </div>
     <ol id="friendSteps"></ol>
   </section>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -318,7 +327,7 @@ function statsEl(st) {
 const okStats = s => s && [s.s, s.a, s.n].every(v => typeof v === 'number' && v >= 1 && v <= 10) ? { s: s.s, a: s.a, n: s.n } : { s: 6, a: 6, n: 6 };
 
 /* ---------- garage: shared through the artifact's database when available, otherwise kept on this device ---------- */
-let mode = 'wait', canWrite = true, db = null, downloads = null;
+let mode = 'wait', canWrite = true, db = null, downloads = null, roomUrl = '';
 let cars = [];                       // real cars: {id, name, src, stats, img}
 const imgCache = new Map();          // src -> Image
 function imgFor(src) {
@@ -394,6 +403,10 @@ function updateMode() {
     $('modeNote').textContent = 'Гараж хранится только на этом устройстве.';
     $('friendText').textContent = 'Общий гараж здесь недоступен, поэтому машинками можно обмениваться файлами.';
     steps('Друг открывает эту страницу у себя, фотографирует машинку и жмёт «Отправить машинку другу».', 'Он присылает тебе этот файл в любом мессенджере.', 'Ты жмёшь «Выбрать фото или файл машинки», добавляешь её в гараж и запускаешь гонку.');
+  } else if (roomUrl) {
+    $('modeNote').textContent = 'Гараж общий: машинки и заезды видят все, у кого есть ваша ссылка.';
+    $('friendText').textContent = 'Отправь другу ссылку ниже. Он сфотографирует свою машинку, и она сама появится в этом гараже.';
+    steps('Скопируй ссылку и отправь её другу в любом мессенджере.', 'Друг открывает ссылку, фотографирует машинку и жмёт «В гараж!».', 'Любой из вас жмёт «Старт!», и гонка идёт на обоих экранах одновременно.');
   } else if (canWrite) {
     $('modeNote').textContent = 'Гараж общий: машинки и заезды видят все, у кого открыта эта страница.';
     $('friendText').textContent = 'Отправь другу ссылку на эту страницу через меню Share. Заезд, который ты запускаешь, он увидит у себя на экране одновременно с тобой.';
@@ -403,6 +416,8 @@ function updateMode() {
     $('friendText').textContent = 'Чтобы твоя машинка попала на трассу, передай её хозяину страницы.';
     steps('Сфотографируй машинку здесь: увидишь её характеристики.', 'Нажми «Отправить машинку другу» и отправь файл хозяину страницы.', 'Когда он добавит её и нажмёт «Старт!», гонка начнётся и на твоём экране.');
   }
+  $('linkRow').hidden = !roomUrl; if (roomUrl) $('roomLink').value = roomUrl;
+  $('export').hidden = !!roomUrl;
   $('go').hidden = mode !== 'wait' && !canWrite;
   $('save').hidden = !canWrite;
   $('bots').closest('label').hidden = !canWrite;
@@ -820,6 +835,25 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+/* ---------- standalone website: a shared garage per link, kept in Firestore ---------- */
+function openRoom(cfg) {
+  window.firebase.initializeApp(cfg);
+  const fs = window.firebase.firestore(), ok = r => typeof r === 'string' && /^[a-z0-9]{10,24}$/.test(r);
+  let room = location.hash.slice(1);
+  if (!ok(room)) { try { room = localStorage.getItem('toyrace.room'); } catch (e) {} }
+  if (!ok(room)) { const a = new Uint8Array(14); crypto.getRandomValues(a); room = Array.from(a, v => 'abcdefghijkmnpqrstuvwxyz23456789'[v % 32]).join(''); }
+  try { localStorage.setItem('toyrace.room', room); } catch (e) {}
+  history.replaceState(null, '', '#' + room);
+  roomUrl = location.href;
+  addEventListener('hashchange', () => location.reload());
+  return { collection: p => fs.collection('rooms/' + room + '/' + p), doc: p => fs.doc('rooms/' + room + '/' + p) };
+}
+$('copyLink').onclick = async () => {
+  try { await navigator.clipboard.writeText(roomUrl); $('copyLink').textContent = 'Скопировано'; }
+  catch (e) { $('roomLink').focus(); $('roomLink').select(); $('copyLink').textContent = 'Выдели и скопируй'; }
+  setTimeout(() => { $('copyLink').textContent = 'Скопировать ссылку'; }, 2500);
+};
+
 /* ---------- start-up ---------- */
 async function init() {
   try { $('bots').checked = localStorage.getItem('toyrace.bots') !== '0'; } catch (e) {}
@@ -827,7 +861,8 @@ async function init() {
   const use = n => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
   use('downloads').then(d => { downloads = d; });
   let user = null;
-  [db, user] = await Promise.all([use('db'), use('user')]);
+  if (!window.claude && window.RACE_FIREBASE && window.firebase) { try { db = openRoom(window.RACE_FIREBASE); } catch (e) { db = null; roomUrl = ''; } }
+  else [db, user] = await Promise.all([use('db'), use('user')]);
   if (!db) { mode = 'local'; loadLocal(); updateMode(); return; }
   mode = 'shared';
   try { if (user && (await user.can('data.write')) === false) canWrite = false; } catch (e) {}
