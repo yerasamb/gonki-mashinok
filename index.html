@@ -187,7 +187,7 @@ section { display: flex; flex-direction: column; gap: 12px; }
     <h2>Гонка с другом</h2>
     <p class="note" id="friendText"></p>
     <div class="actions" id="linkRow" hidden>
-      <label class="field" for="roomLink" style="flex:1 1 260px;min-width:0">Ссылка на ваш общий гараж
+      <label class="field" for="roomLink" style="flex:1 1 260px;min-width:0">Ссылка на сайт
         <input type="text" id="roomLink" readonly style="max-width:none">
       </label>
       <button class="btn blue" id="copyLink" type="button">Скопировать ссылку</button>
@@ -357,7 +357,10 @@ function writeFailed(e) {
 }
 async function addCar(name, src, stats) {
   const car = { name, src, stats, at: Date.now() };
-  if (mode === 'shared') { await db.collection('cars').add(car); return; }
+  if (mode === 'shared') {     // a write with no connection never settles on its own, so give up after a while
+    await Promise.race([db.collection('cars').add(car), new Promise((res, rej) => setTimeout(() => rej({ code: 'timeout' }), 20000))]);
+    return;
+  }
   cars.push({ id: newId(), ...car, img: imgFor(src) }); saveLocal(); renderGarage(); idleDraw();
 }
 async function removeCar(c) {
@@ -404,7 +407,7 @@ function updateMode() {
     $('friendText').textContent = 'Общий гараж здесь недоступен, поэтому машинками можно обмениваться файлами.';
     steps('Друг открывает эту страницу у себя, фотографирует машинку и жмёт «Отправить машинку другу».', 'Он присылает тебе этот файл в любом мессенджере.', 'Ты жмёшь «Выбрать фото или файл машинки», добавляешь её в гараж и запускаешь гонку.');
   } else if (roomUrl) {
-    $('modeNote').textContent = 'Гараж общий: машинки и заезды видят все, у кого есть ваша ссылка.';
+    $('modeNote').textContent = 'Гараж общий: машинки и заезды видят все, кто открыл этот сайт.';
     $('friendText').textContent = 'Отправь другу ссылку ниже. Он сфотографирует свою машинку, и она сама появится в этом гараже.';
     steps('Скопируй ссылку и отправь её другу в любом мессенджере.', 'Друг открывает ссылку, фотографирует машинку и жмёт «В гараж!».', 'Любой из вас жмёт «Старт!», и гонка идёт на обоих экранах одновременно.');
   } else if (canWrite) {
@@ -838,15 +841,21 @@ function frame(now) {
 /* ---------- standalone website: a shared garage per link, kept in Firestore ---------- */
 function openRoom(cfg) {
   window.firebase.initializeApp(cfg);
-  const fs = window.firebase.firestore(), ok = r => typeof r === 'string' && /^[a-z0-9]{10,24}$/.test(r);
-  let room = location.hash.slice(1);
-  if (!ok(room)) { try { room = localStorage.getItem('toyrace.room'); } catch (e) {} }
-  if (!ok(room)) { const a = new Uint8Array(14); crypto.getRandomValues(a); room = Array.from(a, v => 'abcdefghijkmnpqrstuvwxyz23456789'[v % 32]).join(''); }
-  try { localStorage.setItem('toyrace.room', room); } catch (e) {}
-  history.replaceState(null, '', '#' + room);
-  roomUrl = location.href;
-  addEventListener('hashchange', () => location.reload());
-  return { collection: p => fs.collection('rooms/' + room + '/' + p), doc: p => fs.doc('rooms/' + room + '/' + p) };
+  const fs = window.firebase.firestore();
+  try { fs.settings({ experimentalForceLongPolling: true, merge: true }); } catch (e) {}   // works inside messenger browsers and strict networks
+  const ROOM = 'common-garage-1', ok = r => typeof r === 'string' && /^[a-z0-9]{10,24}$/.test(r);
+  // earlier versions gave every device its own garage; move those cars into the common one, once
+  let old = location.hash.slice(1);
+  if (!ok(old)) { try { old = localStorage.getItem('toyrace.room'); } catch (e) {} }
+  if (location.hash) history.replaceState(null, '', location.pathname);
+  if (ok(old)) {
+    fs.collection('rooms/' + old + '/cars').get().then(async snap => {
+      for (const d of snap.docs) { try { await fs.doc('rooms/' + ROOM + '/cars/' + d.id).set(d.data()); await d.ref.delete(); } catch (e) {} }
+      try { localStorage.removeItem('toyrace.room'); } catch (e) {}
+    }).catch(() => {});
+  }
+  roomUrl = location.origin + location.pathname;
+  return { collection: p => fs.collection('rooms/' + ROOM + '/' + p), doc: p => fs.doc('rooms/' + ROOM + '/' + p) };
 }
 $('copyLink').onclick = async () => {
   try { await navigator.clipboard.writeText(roomUrl); $('copyLink').textContent = 'Скопировано'; }
